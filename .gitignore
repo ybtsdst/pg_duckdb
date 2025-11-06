@@ -14,3 +14,4 @@ compile_commands.json
 *.pyc
 
 env/
+.cache
