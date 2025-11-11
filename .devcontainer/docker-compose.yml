@@ -9,8 +9,6 @@ services:
         - DEV_USERNAME
         - USER_UID
         - USER_GID
-        - POSTGRES_UID
-        - POSTGRES_GID
     env_file:
       - .env
     container_name: pg_duckdb_dev

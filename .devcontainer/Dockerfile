@@ -15,7 +15,10 @@ ENV HTTPS_PROXY=${HTTP_PROXY}
 ENV ALL_PROXY=${HTTP_PROXY}
 ENV CLANGD_VERSION=21.1.0
 ENV CLANGD_HOME=/usr/local/lib/clangd
-ENV PATH=${CLANGD_HOME}/bin:${PATH}
+ENV PG_VERSION=18
+ENV PG_HOME=/usr/lib/postgresql/${PG_VERSION}
+ENV PGDATA=/opt/transwarp/pg_duckdb/pg_runtime
+ENV PATH=${CLANGD_HOME}/bin:${PG_HOME}/bin:${PATH}
 ENV TZ=Asia/Shanghai
 
 RUN \
@@ -24,8 +27,8 @@ RUN \
     sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && \
     echo 'Acquire::ForceIPv4 "true";' >> /etc/apt/apt.conf.d/1000-force-ipv4-transport && \
     echo 'Acquire::Retries "100";' >> /etc/apt/apt.conf.d/80-retries && \
-    echo 'Acquire::http::Proxy "${HTTP_PROXY}";' >> /etc/apt/apt.conf.d/99-proxy && \
-    echo 'Acquire::https::Proxy "${HTTPS_PROXY}";' >> /etc/apt/apt.conf.d/99-proxy && \
+    # echo 'Acquire::http::Proxy "${HTTP_PROXY}";' >> /etc/apt/apt.conf.d/99-proxy && \
+    # echo 'Acquire::https::Proxy "${HTTPS_PROXY}";' >> /etc/apt/apt.conf.d/99-proxy && \
     apt-get update -y && \
     # basics
     PKGS="software-properties-common" && \
@@ -45,13 +48,13 @@ RUN \
     libc++abi-dev libglib2.0-dev libtinfo6 cmake libstdc++-12-dev \
     liblz4-dev ninja-build g++ liblz4-dev libcurl4-openssl-dev" \
     apt-get install -y ${PKGS} && \
-    # pg18
+    # pg runtime
     apt-get install -y curl ca-certificates && \
     install -d /usr/share/postgresql-common/pgdg && \
     curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc && \
     bash -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt jammy-pgdg main' > /etc/apt/sources.list.d/pgdg.list" && \
     apt-get update -y && \
-    apt install -y gosu postgresql-18 postgresql-server-dev-18 && \
+    apt install -y gosu postgresql-${PG_VERSION} postgresql-server-dev-${PG_VERSION} && \
     apt-get autoclean
 
 RUN \
@@ -72,21 +75,18 @@ RUN \
     mkdir /coredumps && \
     chmod o+rwx /coredumps
 
+# use postgres as dev username; so we keep uid and group id with our host
 RUN \
     # Create the user
-    groupadd --gid $USER_GID $DEV_USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $DEV_USERNAME \
+    groupmod --gid ${USER_GID} ${DEV_USERNAME} && \
+    usermod --uid ${USER_UID} ${DEV_USERNAME} && \
     #
     # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
-    && echo $DEV_USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$DEV_USERNAME \
-    && chmod 0440 /etc/sudoers.d/$DEV_USERNAME
+    echo $DEV_USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$DEV_USERNAME && \
+    chmod 0440 /etc/sudoers.d/$DEV_USERNAME
 
 RUN \
-    groupadd --gid ${POSTGRES_GID} postgres; \
-    useradd --uid ${POSTGRES_UID} --gid postgres -m postgres; \
-    # also create the postgres user's home directory with appropriate permissions
-    # see https://github.com/docker-library/postgres/issues/274
-    install --verbose --directory --owner postgres --group postgres --mode 1777 /var/lib/postgresql
+    install --verbose --directory --owner postgres --group postgres --mode 1777 ${PGDATA}
 
 ENV LC_ALL="en_US.UTF-8"
 ENV LANG="en_US.UTF-8"

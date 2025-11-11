@@ -1,7 +1,7 @@
 {
     "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
     "sonarlint.pathToCompileCommands": "/opt/transwarp/pg_duckdb/compile_commands.json",
-    "sonarlint.testFilePattern": "{/opt/transwarp/pg_duckdb/third_party/installed/include/**, /usr/include/**}",
+    "sonarlint.testFilePattern": "{/opt/transwarp/pg_duckdb/third_party/**, /usr/include/**}",
     "cmake.generator": "Unix Makefiles",
     "editor.quickSuggestions": {
         "other": "on",
@@ -35,7 +35,7 @@
         "--cross-file-rename",
         "--compile-commands-dir=/opt/transwarp/pg_duckdb/",
         "--completion-style=detailed",
-        "-j=4",
+        "-j=80",
         "--all-scopes-completion",
         // "--limit-references=100",
         // "--limit-results=20",
